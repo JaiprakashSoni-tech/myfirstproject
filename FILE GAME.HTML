@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mini Free Fire Clone</title>
+<style>
+body { margin:0; background:#111; overflow:hidden; }
+canvas { display:block; background:#333; margin:0 auto; }
+#scoreboard {position:absolute; top:10px; left:10px; color:white; font-family:sans-serif; font-size:18px;}
+</style>
+</head>
+<body>
+<div id="scoreboard">HP: <span id="hp">100</span> | Coins: <span id="coins">0</span></div>
+<canvas id="gameCanvas"></canvas>
+<script>
+// Setup
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = 960;
+canvas.height = 540;
+
+// Load player image (replace with generated monkey or your sprite)
+const playerImg = new Image();
+playerImg.src = "/mnt/data/A_2D_digital_screenshot_of_a_top-down_shooter_game.png"; // monkey/game image
+
+// Game state
+let player = {x:480, y:270, w:40, h:40, hp:100, speed:5};
+let bullets = [];
+let enemies = [];
+let coins = [];
+let score = 0;
+let keys = {};
+
+// Event listeners
+window.addEventListener('keydown', e => keys[e.key]=true);
+window.addEventListener('keyup', e => keys[e.key]=false);
+canvas.addEventListener('click', e=>{
+  bullets.push({x:player.x+20, y:player.y+20, dx:Math.cos(0)*10, dy:Math.sin(0)*10});
+});
+
+// Spawn enemies
+function spawnEnemy(){
+  let ex = Math.random()*canvas.width;
+  let ey = Math.random()*canvas.height;
+  enemies.push({x:ex,y:ey,w:35,h:35,hp:50});
+}
+
+// Spawn coins
+function spawnCoin(){
+  let cx = Math.random()*canvas.width;
+  let cy = Math.random()*canvas.height;
+  coins.push({x:cx,y:cy,w:15,h:15});
+}
+
+// Game loop
+function update(){
+  // Movement
+  if(keys['ArrowUp']||keys['w']) player.y -= player.speed;
+  if(keys['ArrowDown']||keys['s']) player.y += player.speed;
+  if(keys['ArrowLeft']||keys['a']) player.x -= player.speed;
+  if(keys['ArrowRight']||keys['d']) player.x += player.speed;
+
+  // Bullet update
+  bullets.forEach((b,i)=>{
+    b.x += b.dx;
+    b.y += b.dy;
+    // remove out-of-bound
+    if(b.x<0||b.x>canvas.width||b.y<0||b.y>canvas.height) bullets.splice(i,1);
+  });
+
+  // Collision bullets -> enemies
+  bullets.forEach((b,bi)=>{
+    enemies.forEach((e,ei)=>{
+      if(b.x>e.x && b.x<e.x+e.w && b.y>e.y && b.y<e.y+e.h){
+        e.hp -= 25;
+        bullets.splice(bi,1);
+        if(e.hp<=0){ enemies.splice(ei,1); score+=10; spawnCoin();}
+      }
+    });
+  });
+
+  // Player -> coins
+  coins.forEach((c,ci)=>{
+    if(player.x+player.w>c.x && player.x<c.x+c.w && player.y+player.h>c.y && player.y<c.y+c.h){
+      coins.splice(ci,1);
+      score+=5;
+    }
+  });
+
+  // Update scoreboard
+  document.getElementById('hp').innerText = player.hp;
+  document.getElementById('coins').innerText = score;
+}
+
+// Draw everything
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // Player
+  ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
+  // Bullets
+  ctx.fillStyle='yellow';
+  bullets.forEach(b=>ctx.fillRect(b.x,b.y,5,5));
+  // Enemies
+  ctx.fillStyle='red';
+  enemies.forEach(e=>ctx.fillRect(e.x,e.y,e.w,e.h));
+  // Coins
+  ctx.fillStyle='gold';
+  coins.forEach(c=>ctx.fillRect(c.x,c.y,c.w,c.h));
+}
+
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// Spawn enemies/coins periodically
+setInterval(spawnEnemy,2000);
+setInterval(spawnCoin,3000);
+
+// Start game
+loop();
+</script>
+</body>
+</html>
